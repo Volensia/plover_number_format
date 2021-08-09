@@ -16,10 +16,10 @@ Example:
  "S*F": "{:number_format_insert:NNN-NN-NNNN}"
  
  248/A*PL
- 2:48
+ 2:48 a.m.
  
  1259/A*PL
- 12:59
+ 12:59 a.m.
  
  1234567890/T*F
  (123) 456-7890
@@ -64,6 +64,10 @@ Example:
 Inserts a currency symbol (or any symbol, really) in front of the previous number.
 
 Unlike Plover's natively supported command, this command ignores any decimal points, comma separators and any letters or words following the number.
+
+The first argument indicates the number of words to search for. For example, if it is 1, the command will only work if the last word is a number; if it is 10, then the command will affect the most recent number within the previous 10 words.
+
+The second argument is the symbol you want to add in front of that number.
 
 Example:
 
