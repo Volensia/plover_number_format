@@ -1,5 +1,7 @@
 # Plover Number Format
 
+NOTE: You can't install this from Plover's plugin manager yet. I'm still waiting on the pull request.
+
 Transforms a previous number in the specified manner. Currently, three actions are supported:
 
 ## number_format_insert
