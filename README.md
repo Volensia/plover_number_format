@@ -1,8 +1,6 @@
 # Plover Number Format
 
-NOTE: You can't install this from Plover's plugin manager yet. I'm still waiting on the pull request.
-
-Transforms a previous number in the specified manner. Currently, three actions are supported:
+Transforms a previous number in the specified manner. Currently, four actions are supported:
 
 ## number_format_insert
 
@@ -60,7 +58,33 @@ Example:
  19/SR*PB
  xix
  ```
- 
+
+## number_word_conversion
+
+Converts a previous number to various forms. Accepts cardinal (ex. 12) or ordinal (ex. 12th) numbers, with or without comma separators and/or decimal places, positive or negative. (Does not accept words like "twelve" yet, that's a work in progress.)
+
+Contains two arguments:
+
+1. 1: cardinal, 2: ordinal, 0: retain the original form. Ordinal numbers cannot have decimal places.
+
+2. 1: number, 2: word.
+
+Example:
+
+```
+9223372036854775807 {:number_word_conversion:2:2}
+nine quintillion two hundred twenty-three quadrillion three hundred seventy-two trillion thirty-six billion eight hundred fifty-four million seven hundred seventy-five thousand eight hundred seventh
+
+-1,234.567 {:number_word_conversion:0:2}
+negative one thousand two hundred thirty-four point five six seven
+
+5th {:number_word_conversion:0:2}
+fifth
+
+101st {:number_word_conversion:1:1}
+101
+```
+
  ## retro_insert_currency
 
 Inserts a currency symbol (or any symbol, really) in front of the previous number.

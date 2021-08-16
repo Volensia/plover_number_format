@@ -1,18 +1,88 @@
 import re
 
 
+def num_sec_to_word(num_sec, mode):
+    number_words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "eighteen", "nineteen"]
+    number_words_tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+
+    illions = ["thousand", "million", "billion", "trillion", "quadrillion", "quintillion", "sextillion", "septillion", "octillion", "nonillion", "decillion"]
+    illion_prefixes = ["", "un", "duo", "tre", "quattuor", "quinqua", "se", "septe", "octo", "nove"]
+    illion_prefixes_tens = ["", "deci", "viginti", "triginta", "quadraginta", "quinquaginta", "sexaginta", "septuaginta", "octoginta", "nonaginta"]
+    illion_prefixes_hundreds = ["", "centi", "ducenti", "trecenti", "quadringenti", "quingenti", "sescenti", "septingenti", "octingenti", "nongenti"]
+
+    # Mode 0: 3 digit segments
+    if mode == 0:
+        # add leading zeros
+        if len(num_sec) == 1:
+            num_sec = "00" + num_sec
+        if len(num_sec) == 2:
+            num_sec = "0" + num_sec
+        # the hundreds
+        num_sec_word = ""
+        if num_sec[0] != "0":
+            num_sec_word = number_words[int(num_sec[0])] + " hundred"
+        # the tens
+        num_tens = int(num_sec[1:3])
+        if num_sec_word != "" and num_tens != "0":
+            num_sec_word += " "
+        if num_tens < 20:
+            num_sec_word += number_words[num_tens]
+        else:
+            num_sec_word += number_words_tens[int(num_sec[1])]
+            if num_sec[2] != "0":
+                num_sec_word += "-" + number_words[int(num_sec[2])]
+        return num_sec_word
+
+    # Mode 1: -illion parts
+    if mode == 1:
+        if num_sec <= 10:
+            return illions[num_sec]
+        if num_sec >= 1000:
+            return "?"
+        prefix1 = illion_prefixes[num_sec%10]
+        prefix2 = illion_prefixes_tens[int(num_sec/10)%10]
+        if num_sec >= 100:
+            prefix2 += illion_prefixes_hundreds[int(num_sec/100)]
+        # tre- rule
+        if num_sec%10 == 3:
+            if prefix2[0] == "v" or prefix2[0] == "t" or prefix2[0] == "q" or prefix2[0] == "o" or prefix2[0] == "c":
+                prefix1 += "s"
+        # se- rule
+        if num_sec%10 == 6:
+            if prefix2[0] == "v" or prefix2[0] == "t" or prefix2[0] == "q":
+                prefix1 += "s"
+            if prefix2[0] == "o" or prefix2[0] == "c":
+                prefix1 += "x"
+        # septe- & nove- rule
+        if num_sec%10 == 7 or num_sec%10 == 9:
+            if prefix2[0] == "d" or prefix2[0] == "t" or prefix2[0] == "q" or prefix2[0] == "s" or prefix2[0] == "c":
+                prefix1 += "n"
+            if prefix2[0] == "v" or prefix2[0] == "o":
+                prefix1 += "m"
+        return prefix1 + prefix2[0:-1] + "illion"
+
+    # Mode 2: single digits
+    if num_sec == "0":
+        return "zero"
+    if num_sec == "O":
+        return ""
+    return number_words[int(num_sec)]
+
+
 def number_format_insert_(ctx, cmdline):
     action = ctx.copy_last_action()
     last_words = "".join(ctx.last_fragments(1))
     cmd = "".join(cmdline)
     l_cmd = len(cmd)
     l = len(last_words)
-    
+
+    # do nothing if there are not enough digits
     key = re.compile(r"(?<!\\)N")
     cnt = len(key.findall(cmd))
     if (l < cnt):
         return action
-    
+
+    # fill in the numbers
     for i in range(l_cmd-1, -1, -1):
         if i > 0 and cmd[i-1] == "\\":
             continue
@@ -24,7 +94,8 @@ def number_format_insert_(ctx, cmdline):
             cmd = cmd[:i] + last_words[l-1] + cmd[i+1:]
             l -= 1
 
-    parenthesis = 0
+    # deal with the symbols
+    parenthesis = 0 # no unpaired parentheses
     for i in range(l_cmd-1, -1, -1):
         if cmd[i] == '_' and cmd[i-1] != "\\":
             cmd = cmd[:i] + ' ' + cmd[i+1:]
@@ -43,27 +114,25 @@ def number_format_insert_(ctx, cmdline):
             cmd = cmd[:i] + "\\" + cmd[i+1:]
     
     action.prev_replace = last_words
-    action.text = cmd.replace("\\", "").strip()
+    action.text = cmd.replace("\\", "").strip() # remove backslash
     action.word = None
     action.prev_attach = True
 
     return action
-
 
 def number_format_roman_(ctx, cmdline):
     action = ctx.copy_last_action()
     args = cmdline.split(":")
     method = int(args[0])
     case = int(args[1])
-    print("method&case", method, case)
     if method < 0 or method > 1:
         return action
 
+    # only convert numbers less than 4 digits long
     last_words = "".join(ctx.last_fragments(1))[::-1]
     num = last_words.replace(",", "").replace(".", "")
     if num.isnumeric() == False or len(num) > 4:
         return action
-    print(last_words, num)
 
     rom = ""
     num_method = [[["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"], ["I", "II", "III", "IIII", "V", "VI", "VII", "VIII", "VIIII"]], [["X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"], ["X", "XX", "XXX", "XXXX", "L", "LX", "LXX", "LXXX", "LXXXX"]], [["C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"], ["C", "CC", "CCC", "CCCC", "D", "DC", "DCC", "DCCC", "DCCCC"]]]
@@ -77,7 +146,6 @@ def number_format_roman_(ctx, cmdline):
         else:
             for j in range(x):
                 rom = "M" + rom
-        print(i, rom)
     if case != 0:
         rom = rom.lower()
 
@@ -88,6 +156,124 @@ def number_format_roman_(ctx, cmdline):
 
     return action
 
+def number_word_conversion_(ctx, cmdline):
+    action = ctx.copy_last_action()
+    args = cmdline.split(":")
+    card_ord = int(args[0]) # maintain/cardinal/ordinal
+    num_word = int(args[1]) # maintain/number/word
+    # if len(arg) > 2:
+        # sig_dec = int(args[2]) # significant digits/decimal places
+    # if len(arg) > 3:
+        # num_fig = int(args[3]) # number of sig-fig/dec-plc
+    # if len(arg) > 4:
+        # separator = int(args[4]) # maintain/+separator/-separator
+    # if card_ord < 0 or card_ord > 2 or num_word < 0 or num_word > 2 or separator < 0 or separator > 2 or sig_dec < 0 or sig_dec > 1:
+        # return action
+
+    num = ""
+    num_to_word = ""
+    num_dec = ""
+    is_negative = False
+
+    fragment = "".join(ctx.last_fragments(1)) # TODO: READ WORDS PROPERLY
+    # check cardinal/ordinal
+    tmp = fragment[-2:]
+    if tmp == "st" or tmp == "nd" or tmp == "rd" or tmp == "th":
+        tmp = fragment[:-2]
+        if card_ord == 0:
+            card_ord = 2
+    else:
+        tmp = fragment
+        if card_ord == 0:
+            card_ord = 1
+    # check number/word
+    if tmp.replace(",", "").replace(".", "").replace("-", "").replace("−", "").isdecimal() == False:
+        return action
+    # check separator
+    # if separator == 0:
+        # if re.search(",", tmp) == None:
+            # separator = 2
+        # else:
+            # separator = 1
+    # check positive/negative
+    if re.search(r"-|−", tmp) != None:
+        is_negative = True
+    num = tmp.replace(",", "").replace("-", "").replace("−", "")
+    # split decimal
+    if re.search(r"\.", tmp) != None:
+        tmp = num.split(".", 1)
+        num = tmp[0]
+        num_dec = tmp[1].replace(".", "")
+        if (num_dec == ""):
+            num_dec = "O"
+
+    # number to word conversion
+    if num_word == 2:
+        for i in range(len(num)-1, -1, -3):
+            num_sec = num_sec_to_word(num[max(0, i-2):i+1], 0)
+            if num_sec != "":
+                if i != len(num)-1:
+                    num_sec += " " + num_sec_to_word(int((len(num)-i-1)/3)-1, 1)
+                if num_to_word != "":
+                    num_sec += " "
+                num_to_word = num_sec + num_to_word
+        if num == "0" and num_to_word == "":
+            num_to_word = "zero"
+        # negative numbers
+        if is_negative:
+            num_to_word = "negative " + num_to_word
+        # decimal numbers
+        if num_dec != "":
+            if num_to_word != "":
+                num_to_word += " "
+            num_to_word += "point"
+        for i in num_dec:
+            num_to_word += " " + num_sec_to_word(i, 2)
+        # ordinal numbers
+        if card_ord == 2 and num_dec == "":
+            tmp = num_to_word[-3:]
+            if tmp == "one":
+                num_to_word = num_to_word[:-3] + "first"
+            elif tmp == "two":
+                num_to_word = num_to_word[:-3] + "second"
+            elif tmp == "ree":
+                num_to_word = num_to_word[:-3] + "ird"
+            elif tmp == "ive":
+                num_to_word = num_to_word[:-3] + "ifth"
+            elif tmp == "ght":
+                num_to_word = num_to_word[:-3] + "ghth"
+            elif tmp == "ine":
+                num_to_word = num_to_word[:-3] + "inth"
+            elif tmp == "lve":
+                num_to_word = num_to_word[:-3] + "lfth"
+            elif num_to_word[-2:] == "ty":
+                num_to_word = num_to_word[:-2] + "tieth"
+            else:
+                num_to_word += "th"
+    # convert numbers to ordinals
+    else:
+        if card_ord == 2 and num_dec == "":
+            tmp = num[-1]
+            if tmp == "1" and num[-2:] != "11":
+                num += "st"
+            elif tmp == "2" and num[-2:] != "12":
+                num += "nd"
+            elif tmp == "3" and num[-2:] != "13":
+                num += "rd"
+            else:
+                num += "th"
+
+    last_words = fragment
+
+    action.prev_replace = last_words
+    if num_word == 2:
+        action.text = num_to_word
+    else:
+        action.text = num
+    action.word = None
+    action.prev_attach = True
+
+    return action
 
 def retro_insert_currency_(ctx, cmdline):
     action = ctx.copy_last_action()
@@ -114,10 +300,11 @@ def retro_insert_currency_(ctx, cmdline):
 def number_format_insert(*args, **kwargs):
     return number_format_insert_(*args, **kwargs)
 
-
 def number_format_roman(*args, **kwargs):
     return number_format_roman_(*args, **kwargs)
 
+def number_word_conversion(*args, **kwargs):
+    return number_word_conversion_(*args, **kwargs)
 
 def retro_insert_currency(*args, **kwargs):
     return retro_insert_currency_(*args, **kwargs)
