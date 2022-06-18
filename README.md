@@ -66,10 +66,15 @@ Converts a previous number to various forms. Accepts cardinal (ex. 12) or ordina
 Contains two mandatory arguments followed by four optional ones (optional arguments can be arranged in any order):
 
 I. 1: cardinal, 2: ordinal, 0: retain the original form. (ordinal numbers cannot have decimal places)
+
 II. 1: number, 2: word.
+
 III. c1: add comma separators; c2: remove comma separators; c0: retain the original form.
+
 IV. s#: retain # number of significant figures.
+
 V. d#: retain # number of decimal places.
+
 VI. m1: use -(U+002D) as the minus sign; m2: use −(U+2212) as the minus sign; m0: retain the original minus sign
 
 Example:
