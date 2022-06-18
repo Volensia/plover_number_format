@@ -2,7 +2,7 @@ import re
 
 
 def num_sec_to_word(num_sec, mode):
-    number_words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "eighteen", "nineteen"]
+    number_words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
     number_words_tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
 
     illions = ["thousand", "million", "billion", "trillion", "quadrillion", "quintillion", "sextillion", "septillion", "octillion", "nonillion", "decillion"]
@@ -129,8 +129,8 @@ def number_format_roman_(ctx, cmdline):
         return action
 
     # only convert numbers less than 4 digits long
-    last_words = "".join(ctx.last_fragments(1))[::-1]
-    num = last_words.replace(",", "").replace(".", "")
+    last_words = "".join(ctx.last_fragments(1))
+    num = last_words[::-1].replace(",", "").replace(".", "")
     if num.isnumeric() == False or len(num) > 4:
         return action
 
@@ -160,15 +160,33 @@ def number_word_conversion_(ctx, cmdline):
     action = ctx.copy_last_action()
     args = cmdline.split(":")
     card_ord = int(args[0]) # maintain/cardinal/ordinal
-    num_word = int(args[1]) # maintain/number/word
-    # if len(arg) > 2:
-        # sig_dec = int(args[2]) # significant digits/decimal places
-    # if len(arg) > 3:
-        # num_fig = int(args[3]) # number of sig-fig/dec-plc
-    # if len(arg) > 4:
-        # separator = int(args[4]) # maintain/+separator/-separator
-    # if card_ord < 0 or card_ord > 2 or num_word < 0 or num_word > 2 or separator < 0 or separator > 2 or sig_dec < 0 or sig_dec > 1:
-        # return action
+    num_word = int(args[1]) # maintain(TODO)/number/word
+    separator = 0 # maintain/+/-
+    sig_dec = 0 # NA/significant figures/decimal places
+    figures = -1 # number of sig_dec
+    hyphen_minus = 0 # maintain/hyphen/minus
+
+    if len(args) > 2:
+        for i in range(2, len(args)):
+            # c for comma separators
+            if args[i][0] == "c":
+                separator = int(args[i][1:])
+            # s for significant figures
+            if args[i][0] == "s":
+                sig_dec = 1
+                figures = int(args[i][1:])
+            # d for decimal places
+            if args[i][0] == "d":
+                sig_dec = 2
+                figures = int(args[i][1:])
+            # m for minus
+            if args[i][0] == "m":
+                hyphen_minus = int(args[i][1:])
+            # z for leading zero
+            # A for and
+            # N for negative
+            # P for decimal point
+            # D for decimal part
 
     num = ""
     num_to_word = ""
@@ -190,14 +208,19 @@ def number_word_conversion_(ctx, cmdline):
     if tmp.replace(",", "").replace(".", "").replace("-", "").replace("−", "").isdecimal() == False:
         return action
     # check separator
-    # if separator == 0:
-        # if re.search(",", tmp) == None:
-            # separator = 2
-        # else:
-            # separator = 1
+    if separator == 0:
+        if re.search(",", tmp) == None:
+            separator = 2
+        else:
+            separator = 1
     # check positive/negative
     if re.search(r"-|−", tmp) != None:
         is_negative = True
+        if hyphen_minus == 0:
+            if tmp[0] == "-":
+                hyphen_minus = 1
+            else:
+                hyphen_minus = 2
     num = tmp.replace(",", "").replace("-", "").replace("−", "")
     # split decimal
     if re.search(r"\.", tmp) != None:
@@ -206,8 +229,31 @@ def number_word_conversion_(ctx, cmdline):
         num_dec = tmp[1].replace(".", "")
         if (num_dec == ""):
             num_dec = "O"
+    # sig fig
+    if sig_dec == 1 and figures > 0:
+        l = len(num)
+        cut = l - figures;
+        if cut > 0:
+            for i in range(0, cut):
+                num = num[:l-i-1] + "0" + num[l-i+1:]
+            num_dec = ""
+        else:
+            sig_dec = 2
+            figures = -cut
+    # decimal places
+    if sig_dec == 2 and figures >= 0:
+        if num_dec == "O":
+            num_dec = ""
+        if figures <= len(num_dec):
+            num_dec = num_dec[:figures]
+        else:
+            append = figures - len(num_dec)
+            for i in range(append):
+                num_dec += "0"
+        if num_dec == "" and num[-1] == "0":
+            num_dec = "O"
 
-    # number to word conversion
+    # number to word conversion TODO: customization options for words
     if num_word == 2:
         for i in range(len(num)-1, -1, -3):
             num_sec = num_sec_to_word(num[max(0, i-2):i+1], 0)
@@ -250,8 +296,13 @@ def number_word_conversion_(ctx, cmdline):
                 num_to_word = num_to_word[:-2] + "tieth"
             else:
                 num_to_word += "th"
-    # convert numbers to ordinals
+    # no number to word conversion
     else:
+        # add comma
+        if separator == 1:
+            for i in range(len(num)-3, 0, -3):
+                num = num[:i] + "," + num[i:]
+        # ordinal
         if card_ord == 2 and num_dec == "":
             tmp = num[-1]
             if tmp == "1" and num[-2:] != "11":
@@ -262,6 +313,17 @@ def number_word_conversion_(ctx, cmdline):
                 num += "rd"
             else:
                 num += "th"
+        # decimal part
+        if num_dec != "":
+            if num_dec == "O":
+                num_dec = ""
+            num += "." + num_dec
+        # negative
+        if is_negative == True:
+            if hyphen_minus == 1:
+                num = "-" + num
+            else:
+                num = "−" + num
 
     last_words = fragment
 

@@ -63,11 +63,14 @@ Example:
 
 Converts a previous number to various forms. Accepts cardinal (ex. 12) or ordinal (ex. 12th) numbers, with or without comma separators and/or decimal places, positive or negative. (Does not accept words like "twelve" yet, that's a work in progress.)
 
-Contains two arguments:
+Contains two mandatory arguments followed by four optional ones (optional arguments can be arranged in any order):
 
-1. 1: cardinal, 2: ordinal, 0: retain the original form. Ordinal numbers cannot have decimal places.
-
-2. 1: number, 2: word.
+I. 1: cardinal, 2: ordinal, 0: retain the original form. (ordinal numbers cannot have decimal places)
+II. 1: number, 2: word.
+III. c1: add comma separators; c2: remove comma separators; c0: retain the original form.
+IV. s#: retain # number of significant figures.
+V. d#: retain # number of decimal places.
+VI. m1: use -(U+002D) as the minus sign; m2: use −(U+2212) as the minus sign; m0: retain the original minus sign
 
 Example:
 
@@ -83,6 +86,15 @@ fifth
 
 101st {:number_word_conversion:1:1}
 101
+
+2345 {:number_word_conversion:2:1:c1}
+2,345th
+
+1234.5678 {:number_word_conversion:2:1:s3:c1}
+1,230th
+
+-765.4 {:number_word_conversion:1:1:d3:m2}
+−765.400
 ```
 
  ## retro_insert_currency
