@@ -72,9 +72,11 @@ def num_sec_to_word(num_sec, mode):
 def number_format_insert_(ctx, cmdline):
     action = ctx.copy_last_action()
     last_words = "".join(ctx.last_fragments(1))
+    num = last_words.replace(",", "").replace(".","")
     cmd = "".join(cmdline)
     l_cmd = len(cmd)
-    l = len(last_words)
+    l = len(num)
+    print(num)
 
     # do nothing if there are not enough digits
     key = re.compile(r"(?<!\\)N")
@@ -87,11 +89,11 @@ def number_format_insert_(ctx, cmdline):
         if i > 0 and cmd[i-1] == "\\":
             continue
         if cmd[i] == 'N':
-            cmd = cmd[:i] + last_words[l-1] + cmd[i+1:]
+            cmd = cmd[:i] + num[l-1] + cmd[i+1:]
             l -= 1
             cnt -= 1
         elif (l > cnt and l > 0) and (cmd[i] == 'n' or cmd[i] == 'x' or cmd[i] == 'X' or cmd[i] == '0' or cmd[i] == '_'):
-            cmd = cmd[:i] + last_words[l-1] + cmd[i+1:]
+            cmd = cmd[:i] + num[l-1] + cmd[i+1:]
             l -= 1
 
     # deal with the symbols
