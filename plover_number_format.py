@@ -76,7 +76,6 @@ def number_format_insert_(ctx, cmdline):
     cmd = "".join(cmdline)
     l_cmd = len(cmd)
     l = len(num)
-    print(num)
 
     # do nothing if there are not enough digits
     key = re.compile(r"(?<!\\)N")
@@ -119,6 +118,8 @@ def number_format_insert_(ctx, cmdline):
     action.text = cmd.replace("\\", "").strip() # remove backslash
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
@@ -155,6 +156,8 @@ def number_format_roman_(ctx, cmdline):
     action.text = rom
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
@@ -336,6 +339,8 @@ def number_word_conversion_(ctx, cmdline):
         action.text = num
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
@@ -357,6 +362,8 @@ def retro_insert_currency_(ctx, cmdline):
     action.text = symbol + last_words
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
