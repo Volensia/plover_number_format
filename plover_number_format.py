@@ -1,5 +1,5 @@
 import re
-
+from plover.formatting import apply_case
 
 def num_sec_to_word(num_sec, mode):
     number_words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
@@ -67,6 +67,30 @@ def num_sec_to_word(num_sec, mode):
     if num_sec == "O":
         return ""
     return number_words[int(num_sec)]
+
+
+# Used for getting the correct capitalization
+# This is used for converting digits to numbers
+def num_to_word_get_case(ctx):
+    action_gen = ctx.iter_last_actions()
+
+    # Fails if the Plover was recently opened,
+    # and there aren't any actions before the number
+    try:
+        # Check if there is a capitalization action after the number
+        last_action = next(action_gen)
+        if last_action.next_case != None:
+            return last_action.next_case
+
+        # Filter out all the actions that were part of writing the number
+        while last_action.prev_attach:
+            last_action = next(action_gen)
+
+        # Use the case from action of the thing
+        return next(action_gen).next_case
+    # Not enough actions to look at
+    except StopIteration:
+        return None
 
 
 def number_format_insert_(ctx, cmdline):
@@ -331,10 +355,12 @@ def number_word_conversion_(ctx, cmdline):
                 num = "−" + num
 
     last_words = fragment
-
     action.prev_replace = last_words
     if num_word == 2:
-        action.text = num_to_word
+        # get the case to use
+        case = num_to_word_get_case(ctx)
+        action.text = apply_case(num_to_word, case)
+
     else:
         action.text = num
     action.word = None
