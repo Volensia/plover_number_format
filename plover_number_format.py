@@ -86,7 +86,7 @@ def num_to_word_get_case(ctx):
         while last_action.prev_attach:
             last_action = next(action_gen)
 
-        # Use the case from action of the thing
+        # Use the case from action of the thing before the number
         return next(action_gen).next_case
     # Not enough actions to look at
     except StopIteration:
