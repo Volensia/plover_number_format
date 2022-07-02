@@ -1,5 +1,5 @@
 import re
-
+from plover.formatting import apply_case
 
 def num_sec_to_word(num_sec, mode):
     number_words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
@@ -69,12 +69,37 @@ def num_sec_to_word(num_sec, mode):
     return number_words[int(num_sec)]
 
 
+# Used for getting the correct capitalization
+# This is used for converting digits to numbers
+def num_to_word_get_case(ctx):
+    action_gen = ctx.iter_last_actions()
+
+    # Fails if the Plover was recently opened,
+    # and there aren't any actions before the number
+    try:
+        # Check if there is a capitalization action after the number
+        last_action = next(action_gen)
+        if last_action.next_case != None:
+            return last_action.next_case
+
+        # Filter out all the actions that were part of writing the number
+        while last_action.prev_attach:
+            last_action = next(action_gen)
+
+        # Use the case from action of the thing before the number
+        return next(action_gen).next_case
+    # Not enough actions to look at
+    except StopIteration:
+        return None
+
+
 def number_format_insert_(ctx, cmdline):
     action = ctx.copy_last_action()
     last_words = "".join(ctx.last_fragments(1))
+    num = last_words.replace(",", "").replace(".","")
     cmd = "".join(cmdline)
     l_cmd = len(cmd)
-    l = len(last_words)
+    l = len(num)
 
     # do nothing if there are not enough digits
     key = re.compile(r"(?<!\\)N")
@@ -87,11 +112,11 @@ def number_format_insert_(ctx, cmdline):
         if i > 0 and cmd[i-1] == "\\":
             continue
         if cmd[i] == 'N':
-            cmd = cmd[:i] + last_words[l-1] + cmd[i+1:]
+            cmd = cmd[:i] + num[l-1] + cmd[i+1:]
             l -= 1
             cnt -= 1
         elif (l > cnt and l > 0) and (cmd[i] == 'n' or cmd[i] == 'x' or cmd[i] == 'X' or cmd[i] == '0' or cmd[i] == '_'):
-            cmd = cmd[:i] + last_words[l-1] + cmd[i+1:]
+            cmd = cmd[:i] + num[l-1] + cmd[i+1:]
             l -= 1
 
     # deal with the symbols
@@ -117,6 +142,8 @@ def number_format_insert_(ctx, cmdline):
     action.text = cmd.replace("\\", "").strip() # remove backslash
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
@@ -153,6 +180,8 @@ def number_format_roman_(ctx, cmdline):
     action.text = rom
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
@@ -326,14 +355,18 @@ def number_word_conversion_(ctx, cmdline):
                 num = "−" + num
 
     last_words = fragment
-
     action.prev_replace = last_words
     if num_word == 2:
-        action.text = num_to_word
+        # get the case to use
+        case = num_to_word_get_case(ctx)
+        action.text = apply_case(num_to_word, case)
+
     else:
         action.text = num
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
@@ -355,6 +388,8 @@ def retro_insert_currency_(ctx, cmdline):
     action.text = symbol + last_words
     action.word = None
     action.prev_attach = True
+    action.next_attach = False
+    action.glue = False
 
     return action
 
